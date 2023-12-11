@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ClimateMonitor.Services;
 using ClimateMonitor.Services.Models;
+using System.Security.Permissions;
 
 namespace ClimateMonitor.Api.Controllers;
 
@@ -32,11 +33,22 @@ public class ReadingsController : ControllerBase
     /// </remarks>
     /// <param name="deviceSecret">A unique identifier on the device included in the header(x-device-shared-secret).</param>
     /// <param name="deviceReadingRequest">Sensor information and extra metadata from device.</param>
+    /// /// 
+    [HttpGet("hello")]
+    public ActionResult<String> hello()
+    {
+
+        Console.WriteLine( "Hello");
+        return "everything good";
+    }
+
     [HttpPost("evaluate")]
     public ActionResult<IEnumerable<Alert>> EvaluateReading(
-        string deviceSecret,
         [FromBody] DeviceReadingRequest deviceReadingRequest)
     {
+
+          string deviceSecret = Request.Headers["x-device-shared-secret"];
+
         if (!_secretValidator.ValidateDeviceSecret(deviceSecret))
         {
             return Problem(
@@ -44,6 +56,23 @@ public class ReadingsController : ControllerBase
                 statusCode: StatusCodes.Status401Unauthorized);
         }
 
+        if (!_alertService.FirmwareValidation(deviceReadingRequest.FirmwareVersion))
+        {
+            // i will emulate a modelstate error called FirmwareVersion
+            ModelState.AddModelError("FirmwareVersion", "The firmware value does not match semantic versioning format.");
+            // as the unittest is waiting for a ValidationProblemDetails, we will use it
+            var details = new ValidationProblemDetails(ModelState);
+            return new ObjectResult(details)
+            {
+                ContentTypes = {"application/problem+json"},
+                StatusCode = 400,
+            };
+
+        }    
+
+
+
         return Ok(_alertService.GetAlerts(deviceReadingRequest));
     }
+
 }

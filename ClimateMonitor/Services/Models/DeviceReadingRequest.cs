@@ -8,8 +8,10 @@ public class DeviceReadingRequest
     public string FirmwareVersion { get; set; } = string.Empty;
 
     [Required]
-    public decimal Temperature { get; set; }
+    public decimal Temperature { get; set; } =  0;
 
     [Required]
-    public decimal Humidity { get; set; }
+    public decimal Humidity { get; set; } = 0;
 }
+
+
